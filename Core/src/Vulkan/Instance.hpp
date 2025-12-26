@@ -16,6 +16,14 @@ namespace Pulsar::Vulkan {
         Version version = {1, 0, 0};
     };
 
+    struct QueueFamilyIndices {
+        std::optional<uint32_t> graphicsFamily = std::nullopt;
+
+        bool IsValid() const {
+            return graphicsFamily.has_value();
+        }
+    };
+
     class Instance {
     public:
         static Instance Create(const ApplicationInfo &info = {});
@@ -35,6 +43,7 @@ namespace Pulsar::Vulkan {
     private:
         VkInstance m_Instance = nullptr;
         VkDebugUtilsMessengerEXT m_DebugMessenger = nullptr;
+        VkPhysicalDevice m_PhysicalDevice = nullptr;
         inline static std::optional<std::function<void(std::string)> > s_MessageCallback = std::nullopt;
 
         Instance() = default;
@@ -45,6 +54,12 @@ namespace Pulsar::Vulkan {
             const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
             void *pUserData);
 
+        static QueueFamilyIndices FindQueueFamilies(const VkPhysicalDevice &device);
+
+        static std::string GetDeviceName(const VkPhysicalDevice &device);
+
+        static uint16_t RateDevice(const VkPhysicalDevice &device);
+
         static bool IsValidationLayerSupported();
 
         static void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
@@ -54,6 +69,8 @@ namespace Pulsar::Vulkan {
         void InitDebugMessenger();
 
         void DeinitDebugMessenger() const;
+
+        void SelectPhysicalDevice();
     };
 } //Pulsar::Vulkan
 

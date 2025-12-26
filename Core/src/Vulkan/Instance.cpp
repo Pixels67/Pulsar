@@ -4,6 +4,7 @@
 #include <cstring>
 #include <functional>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -29,10 +30,9 @@ namespace Pulsar::Vulkan {
     Instance Instance::Create(const ApplicationInfo &info) {
 #ifndef NDEBUG
         uint32_t extensionCount;
-        vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
-        VkExtensionProperties *extensions = (VkExtensionProperties *)
-                malloc(extensionCount * sizeof(VkExtensionProperties));
-        vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, extensions);
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+        auto *extensions = static_cast<VkExtensionProperties *>(malloc(extensionCount * sizeof(VkExtensionProperties)));
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions);
 
         std::cout << extensionCount << " extensions supported\n";
         std::cout << "=======================\n";
@@ -41,6 +41,8 @@ namespace Pulsar::Vulkan {
         }
 
         std::cout << "=======================\n";
+
+        free(extensions);
 #endif
 
         VkApplicationInfo appInfo{};
@@ -60,7 +62,7 @@ namespace Pulsar::Vulkan {
         }
 
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-        if (s_ValidationLayerEnabled) {
+        if constexpr (s_ValidationLayerEnabled) {
             if (!IsValidationLayerSupported()) {
                 throw std::runtime_error("Failed to create Vulkan instance: Validation layers not supported");
             }
@@ -95,6 +97,8 @@ namespace Pulsar::Vulkan {
         }
 
         instance.InitDebugMessenger();
+        instance.SelectPhysicalDevice();
+
         return instance;
     }
 
@@ -126,7 +130,7 @@ namespace Pulsar::Vulkan {
     }
 
     void Instance::InitDebugMessenger() {
-        if (!s_ValidationLayerEnabled) {
+        if constexpr (!s_ValidationLayerEnabled) {
             return;
         }
 
@@ -144,6 +148,32 @@ namespace Pulsar::Vulkan {
         }
     }
 
+    void Instance::SelectPhysicalDevice() {
+        uint32_t deviceCount = 0;
+        vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
+
+        if (deviceCount == 0) {
+            throw std::runtime_error("Failed to select physical device: No device found with vulkan support");
+        }
+
+        std::vector<VkPhysicalDevice> devices(deviceCount);
+        vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
+
+        for (const auto &device: devices) {
+            if (RateDevice(device) != 0 &&
+                (m_PhysicalDevice == nullptr || RateDevice(device) > RateDevice(m_PhysicalDevice))) {
+                m_PhysicalDevice = device;
+                break;
+            }
+        }
+
+        if (m_PhysicalDevice == nullptr) {
+            throw std::runtime_error("Failed to select physical device: No suitable device found");
+        }
+
+        std::cout << "[PS] Selected physical device: " << GetDeviceName(m_PhysicalDevice) << '\n';
+    }
+
     VkBool32 Instance::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                      VkDebugUtilsMessageTypeFlagsEXT messageType,
                                      const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
@@ -151,10 +181,35 @@ namespace Pulsar::Vulkan {
         if (s_MessageCallback) {
             s_MessageCallback.value()(pCallbackData->pMessage);
         } else {
-            std::cout << pCallbackData->pMessage << '\n';
+            std::cout << "[VK] " << pCallbackData->pMessage << '\n';
         }
 
         return VK_FALSE;
+    }
+
+    QueueFamilyIndices Instance::FindQueueFamilies(const VkPhysicalDevice &device) {
+        QueueFamilyIndices indices;
+
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+        int i = 0;
+        for (const auto &queueFamily: queueFamilies) {
+            if (indices.IsValid()) {
+                break;
+            }
+
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                indices.graphicsFamily = i;
+            }
+
+            i++;
+        }
+
+        return indices;
     }
 
     bool Instance::IsValidationLayerSupported() {
@@ -180,6 +235,38 @@ namespace Pulsar::Vulkan {
         }
 
         return true;
+    }
+
+    std::string Instance::GetDeviceName(const VkPhysicalDevice &device) {
+        VkPhysicalDeviceProperties properties;
+        vkGetPhysicalDeviceProperties(device, &properties);
+
+        return properties.deviceName;
+    }
+
+    // 0 means the device is not supported
+    uint16_t Instance::RateDevice(const VkPhysicalDevice &device) {
+        if (!FindQueueFamilies(device).IsValid()) {
+            return 0;
+        }
+
+        VkPhysicalDeviceProperties properties;
+        vkGetPhysicalDeviceProperties(device, &properties);
+
+        VkPhysicalDeviceFeatures features;
+        vkGetPhysicalDeviceFeatures(device, &features);
+
+        uint16_t score = 0;
+
+        if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+            score += 32;
+        } else if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
+            score += 1;
+        }
+
+        score += properties.limits.maxImageDimension2D / 1024;
+
+        return score;
     }
 
     void Instance::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
