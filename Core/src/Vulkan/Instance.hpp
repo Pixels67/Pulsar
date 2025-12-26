@@ -9,6 +9,7 @@
 #include <vulkan/vulkan.h>
 
 #include "Version.hpp"
+#include "Glfw/Window.hpp"
 
 namespace Pulsar::Vulkan {
     struct ApplicationInfo {
@@ -18,9 +19,10 @@ namespace Pulsar::Vulkan {
 
     struct QueueFamilyIndices {
         std::optional<uint32_t> graphicsFamily = std::nullopt;
+        std::optional<uint32_t> presentFamily = std::nullopt;
 
         bool IsValid() const {
-            return graphicsFamily.has_value();
+            return graphicsFamily.has_value() && presentFamily.has_value();
         }
     };
 
@@ -41,12 +43,15 @@ namespace Pulsar::Vulkan {
         Instance &operator=(Instance &&other) noexcept;
 
     private:
+        inline static std::optional<std::function<void(std::string)> > s_MessageCallback = std::nullopt;
+
         VkInstance m_Instance = nullptr;
+        VkSurfaceKHR m_Surface = nullptr;
         VkDebugUtilsMessengerEXT m_DebugMessenger = nullptr;
         VkPhysicalDevice m_PhysicalDevice = nullptr;
         VkDevice m_LogicalDevice = nullptr;
         VkQueue m_GraphicsQueue = nullptr;
-        inline static std::optional<std::function<void(std::string)> > s_MessageCallback = std::nullopt;
+        VkQueue m_PresentQueue = nullptr;
 
         Instance() = default;
 
@@ -56,11 +61,7 @@ namespace Pulsar::Vulkan {
             const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
             void *pUserData);
 
-        static QueueFamilyIndices FindQueueFamilies(const VkPhysicalDevice &device);
-
         static std::string GetDeviceName(const VkPhysicalDevice &device);
-
-        static uint16_t RateDevice(const VkPhysicalDevice &device);
 
         static bool IsValidationLayerSupported();
 
@@ -68,15 +69,23 @@ namespace Pulsar::Vulkan {
 
         static std::vector<const char *> GetRequiredExtensions();
 
+        QueueFamilyIndices FindQueueFamilies(const VkPhysicalDevice &device) const;
+
+        uint16_t RateDevice(const VkPhysicalDevice &device) const;
+
         void InitDebugMessenger();
 
-        void DeinitDebugMessenger() const;
+        void DeinitDebugMessenger();
 
         void SelectPhysicalDevice();
 
         void InitLogicalDevice();
 
-        void DeinitLogicalDevice() const;
+        void DeinitLogicalDevice();
+
+        void InitSurface();
+
+        void DeinitSurface();
     };
 } //Pulsar::Vulkan
 

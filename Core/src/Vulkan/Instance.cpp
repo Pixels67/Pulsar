@@ -5,6 +5,7 @@
 #include <functional>
 #include <iostream>
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include <vector>
 
@@ -97,6 +98,7 @@ namespace Pulsar::Vulkan {
         }
 
         instance.InitDebugMessenger();
+        instance.InitSurface();
         instance.SelectPhysicalDevice();
         instance.InitLogicalDevice();
 
@@ -110,6 +112,7 @@ namespace Pulsar::Vulkan {
     Instance::~Instance() {
         if (m_Instance != nullptr) {
             DeinitLogicalDevice();
+            DeinitSurface();
             DeinitDebugMessenger();
             vkDestroyInstance(m_Instance, nullptr);
         }
@@ -131,92 +134,6 @@ namespace Pulsar::Vulkan {
         return *this;
     }
 
-    void Instance::InitDebugMessenger() {
-        if constexpr (!s_ValidationLayerEnabled) {
-            return;
-        }
-
-        VkDebugUtilsMessengerCreateInfoEXT createInfo;
-        PopulateDebugMessengerCreateInfo(createInfo);
-
-        if (CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to initialize debug messenger: Unknown error");
-        }
-    }
-
-    void Instance::DeinitDebugMessenger() const {
-        if (m_DebugMessenger != nullptr) {
-            DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
-        }
-    }
-
-    void Instance::SelectPhysicalDevice() {
-        uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
-
-        if (deviceCount == 0) {
-            throw std::runtime_error("Failed to select physical device: No device found with vulkan support");
-        }
-
-        std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
-
-        for (const auto &device: devices) {
-            if (RateDevice(device) != 0 &&
-                (m_PhysicalDevice == nullptr || RateDevice(device) > RateDevice(m_PhysicalDevice))) {
-                m_PhysicalDevice = device;
-                break;
-            }
-        }
-
-        if (m_PhysicalDevice == nullptr) {
-            throw std::runtime_error("Failed to select physical device: No suitable device found");
-        }
-
-        std::cout << "[PS] Selected physical device: " << GetDeviceName(m_PhysicalDevice) << '\n';
-    }
-
-    void Instance::InitLogicalDevice() {
-        QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
-
-        VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
-        queueCreateInfo.queueCount = 1;
-
-        float queuePriority = 1.0F;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
-
-        VkPhysicalDeviceFeatures deviceFeatures{};
-
-        VkDeviceCreateInfo deviceCreateInfo{};
-        deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        deviceCreateInfo.queueCreateInfoCount = 1;
-        deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
-        deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-
-        deviceCreateInfo.enabledExtensionCount = 0;
-
-        if (s_ValidationLayerEnabled) {
-            deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(s_ValidationLayers.size());
-            deviceCreateInfo.ppEnabledLayerNames = s_ValidationLayers.data();
-        } else {
-            deviceCreateInfo.enabledLayerCount = 0;
-        }
-
-        if (vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_LogicalDevice) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create logical device: Unknown error");
-        }
-
-        vkGetDeviceQueue(m_LogicalDevice, indices.graphicsFamily.value(), 0, &m_GraphicsQueue);
-
-        std::cout << "[PS] " << "Initialized logical device successfully\n";
-    }
-
-    void Instance::DeinitLogicalDevice() const {
-        vkDestroyDevice(m_LogicalDevice, nullptr);
-    }
-
     VkBool32 Instance::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                      VkDebugUtilsMessageTypeFlagsEXT messageType,
                                      const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
@@ -228,31 +145,6 @@ namespace Pulsar::Vulkan {
         }
 
         return VK_FALSE;
-    }
-
-    QueueFamilyIndices Instance::FindQueueFamilies(const VkPhysicalDevice &device) {
-        QueueFamilyIndices indices;
-
-        uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
-        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-        int i = 0;
-        for (const auto &queueFamily: queueFamilies) {
-            if (indices.IsValid()) {
-                break;
-            }
-
-            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                indices.graphicsFamily = i;
-            }
-
-            i++;
-        }
-
-        return indices;
     }
 
     bool Instance::IsValidationLayerSupported() {
@@ -287,31 +179,6 @@ namespace Pulsar::Vulkan {
         return properties.deviceName;
     }
 
-    // 0 means the device is not supported
-    uint16_t Instance::RateDevice(const VkPhysicalDevice &device) {
-        if (!FindQueueFamilies(device).IsValid()) {
-            return 0;
-        }
-
-        VkPhysicalDeviceProperties properties;
-        vkGetPhysicalDeviceProperties(device, &properties);
-
-        VkPhysicalDeviceFeatures features;
-        vkGetPhysicalDeviceFeatures(device, &features);
-
-        uint16_t score = 0;
-
-        if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-            score += 32;
-        } else if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
-            score += 1;
-        }
-
-        score += properties.limits.maxImageDimension2D / 1024;
-
-        return score;
-    }
-
     void Instance::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
@@ -335,5 +202,178 @@ namespace Pulsar::Vulkan {
         }
 
         return extensions;
+    }
+
+    QueueFamilyIndices Instance::FindQueueFamilies(const VkPhysicalDevice &device) const {
+        QueueFamilyIndices indices;
+
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+        if (m_Surface == nullptr) {
+            throw std::runtime_error("Failed to find queue families: Surface not initialized");
+        }
+
+        int i = 0;
+        for (const auto &queueFamily: queueFamilies) {
+            if (indices.IsValid()) {
+                break;
+            }
+
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                indices.graphicsFamily = i;
+            }
+
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Surface, &presentSupport);
+
+            if (presentSupport) {
+                indices.presentFamily = i;
+            }
+
+            i++;
+        }
+
+        return indices;
+    }
+
+    // 0 means the device is not supported
+    uint16_t Instance::RateDevice(const VkPhysicalDevice &device) const {
+        if (!FindQueueFamilies(device).IsValid()) {
+            return 0;
+        }
+
+        VkPhysicalDeviceProperties properties;
+        vkGetPhysicalDeviceProperties(device, &properties);
+
+        VkPhysicalDeviceFeatures features;
+        vkGetPhysicalDeviceFeatures(device, &features);
+
+        uint16_t score = 0;
+
+        if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+            score += 32;
+        } else if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
+            score += 1;
+        }
+
+        score += properties.limits.maxImageDimension2D / 1024;
+
+        return score;
+    }
+
+    void Instance::InitDebugMessenger() {
+        if constexpr (!s_ValidationLayerEnabled) {
+            return;
+        }
+
+        VkDebugUtilsMessengerCreateInfoEXT createInfo;
+        PopulateDebugMessengerCreateInfo(createInfo);
+
+        if (CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to initialize debug messenger: Unknown error");
+        }
+    }
+
+    void Instance::DeinitDebugMessenger() {
+        if (m_DebugMessenger != nullptr) {
+            DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+            m_DebugMessenger = nullptr;
+        }
+    }
+
+    void Instance::SelectPhysicalDevice() {
+        uint32_t deviceCount = 0;
+        vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
+
+        if (deviceCount == 0) {
+            throw std::runtime_error("Failed to select physical device: No device found with vulkan support");
+        }
+
+        std::vector<VkPhysicalDevice> devices(deviceCount);
+        vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
+
+        for (const auto &device: devices) {
+            if (RateDevice(device) != 0 &&
+                (m_PhysicalDevice == nullptr || RateDevice(device) > RateDevice(m_PhysicalDevice))) {
+                m_PhysicalDevice = device;
+                break;
+            }
+        }
+
+        if (m_PhysicalDevice == nullptr) {
+            throw std::runtime_error("Failed to select physical device: No suitable device found");
+        }
+
+        std::cout << "[PS] Selected physical device: " << GetDeviceName(m_PhysicalDevice) << '\n';
+    }
+
+    void Instance::InitLogicalDevice() {
+        VkPhysicalDeviceFeatures deviceFeatures{};
+
+        VkDeviceCreateInfo deviceCreateInfo{};
+        deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceCreateInfo.queueCreateInfoCount = 1;
+        deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+
+        deviceCreateInfo.enabledExtensionCount = 0;
+
+        if (s_ValidationLayerEnabled) {
+            deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(s_ValidationLayers.size());
+            deviceCreateInfo.ppEnabledLayerNames = s_ValidationLayers.data();
+        } else {
+            deviceCreateInfo.enabledLayerCount = 0;
+        }
+
+        QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
+
+        std::set uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+        float queuePriority = 1.0F;
+        for (uint32_t queueFamily : uniqueQueueFamilies) {
+            VkDeviceQueueCreateInfo queueCreateInfo{};
+            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.queueFamilyIndex = queueFamily;
+            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.pQueuePriorities = &queuePriority;
+            queueCreateInfos.push_back(queueCreateInfo);
+        }
+
+        deviceCreateInfo.queueCreateInfoCount = queueCreateInfos.size();
+        deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+
+        if (vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_LogicalDevice) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create logical device: Unknown error");
+        }
+
+        vkGetDeviceQueue(m_LogicalDevice, indices.graphicsFamily.value(), 0, &m_GraphicsQueue);
+        vkGetDeviceQueue(m_LogicalDevice, indices.presentFamily.value(), 0, &m_PresentQueue);
+
+        std::cout << "[PS] " << "Initialized logical device successfully\n";
+    }
+
+    void Instance::DeinitLogicalDevice() {
+        if (m_LogicalDevice != nullptr) {
+            vkDestroyDevice(m_LogicalDevice, nullptr);
+            m_LogicalDevice = nullptr;
+        }
+    }
+
+    void Instance::InitSurface() {
+        GLFWwindow *currentWindow = Glfw::Window::GetCurrent()->GetGlfwWindowPtr();
+        if (glfwCreateWindowSurface(m_Instance, currentWindow, nullptr, &m_Surface) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to initialize window surface: Unknown error");
+        }
+    }
+
+    void Instance::DeinitSurface() {
+        if (m_Surface != nullptr) {
+            vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
+            m_Surface = nullptr;
+        }
     }
 }

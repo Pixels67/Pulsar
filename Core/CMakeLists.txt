@@ -10,15 +10,19 @@ CPMAddPackage(
         "GLFW_BUILD_EXAMPLES OFF"
 )
 
+CPMAddPackage("gh:Pixels67/glad#master")
+
 add_library(${PROJECT_NAME}
         include/Pulsar.hpp
-        src/Pulsar.cpp
-        src/Vulkan/Instance.cpp
-        src/Vulkan/Instance.hpp
+        src/GraphicsApi.hpp
         src/Version.hpp
         src/Vulkan/Extensions.hpp
+        src/Vulkan/Instance.hpp
+        src/Vulkan/Instance.cpp
+        src/Glfw/Window.hpp
+        src/Glfw/Window.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC include src)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan glfw)
+target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan glfw glad)

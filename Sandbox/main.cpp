@@ -1,25 +1,13 @@
-#include <iostream>
-
-#include <vulkan/vulkan.h>
-#include <GLFW/glfw3.h>
-
+#include "Glfw/Window.hpp"
 #include "Vulkan/Instance.hpp"
 
 int main() {
-    glfwInit();
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    GLFWwindow *window = glfwCreateWindow(800, 600, "Window", nullptr, nullptr);
+    Pulsar::Glfw::Window window = Pulsar::Glfw::Window::Create();
+    window.SetCurrent();
 
     Pulsar::Vulkan::Instance instance = Pulsar::Vulkan::Instance::Create();
 
-    while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
+    while (!window.ShouldClose()) {
+        Pulsar::Glfw::PollEvents();
     }
-
-    glfwDestroyWindow(window);
-
-    glfwTerminate();
-
-    return 0;
 }
