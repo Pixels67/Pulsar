@@ -8,6 +8,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "Shader.hpp"
 #include "Version.hpp"
 
 namespace Pulsar::Vulkan {
@@ -59,6 +60,7 @@ namespace Pulsar::Vulkan {
         VkFormat m_SwapChainImageFormat{};
         VkExtent2D m_SwapChainExtent{};
         std::vector<VkImageView> m_SwapChainImageViews;
+        VkPipeline m_GraphicsPipeline;
 
         Instance() = default;
 
@@ -82,6 +84,7 @@ namespace Pulsar::Vulkan {
 
         [[nodiscard]] QueueFamilyIndices FindQueueFamilies(const VkPhysicalDevice &device) const;
         [[nodiscard]] SwapChainSupportInfo QuerySwapChainSupport(const VkPhysicalDevice &device) const;
+        [[nodiscard]] VkShaderModule CreateShaderModule(ShaderType type, const std::string &source) const;
         [[nodiscard]] uint16_t RateDevice(const VkPhysicalDevice &device) const;
 
         void InitDebugMessenger();
@@ -100,6 +103,9 @@ namespace Pulsar::Vulkan {
 
         void InitImageViews();
         void DeinitImageViews();
+
+        void InitGraphicsPipeline();
+        void DeinitGraphicsPipeline();
     };
 } //Pulsar::Vulkan
 

@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "Extensions.hpp"
+#include "Shader.hpp"
 #include "Glfw/Window.hpp"
 
 namespace Pulsar::Vulkan {
@@ -32,6 +33,41 @@ namespace Pulsar::Vulkan {
 #else
     static constexpr bool s_ValidationLayerEnabled = false;
 #endif
+
+    static constexpr auto s_VertShader = R"(
+#version 450
+
+vec2 positions[3] = vec2[](
+    vec2(0.0, -0.5),
+    vec2(0.5, 0.5),
+    vec2(-0.5, 0.5)
+);
+
+vec3 colors[3] = vec3[](
+    vec3(1.0, 0.0, 0.0),
+    vec3(0.0, 1.0, 0.0),
+    vec3(0.0, 0.0, 1.0)
+);
+
+layout(location = 0) out vec3 fragColor;
+
+void main() {
+    gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+    fragColor = colors[gl_VertexIndex];
+}
+)";
+
+    static constexpr auto s_FragShader = R"(
+#version 450
+
+layout(location = 0) in vec3 fragColor;
+
+layout(location = 0) out vec4 outColor;
+
+void main() {
+    outColor = vec4(fragColor, 1.0);
+}
+)";
 
     Instance Instance::Create(const ApplicationInfo &info) {
 #ifndef NDEBUG
@@ -108,6 +144,7 @@ namespace Pulsar::Vulkan {
         instance.InitLogicalDevice();
         instance.InitSwapChain();
         instance.InitImageViews();
+        instance.InitGraphicsPipeline();
 
         return instance;
     }
@@ -118,6 +155,7 @@ namespace Pulsar::Vulkan {
 
     Instance::~Instance() {
         if (m_Instance != nullptr) {
+            DeinitGraphicsPipeline();
             DeinitImageViews();
             DeinitSwapChain();
             DeinitLogicalDevice();
@@ -329,6 +367,22 @@ namespace Pulsar::Vulkan {
         }
 
         return info;
+    }
+
+    VkShaderModule Instance::CreateShaderModule(const ShaderType type, const std::string &source) const {
+        const std::vector<uint32_t> spirv = CompileShader(type, source);
+
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = spirv.size();
+        createInfo.pCode = spirv.data();
+
+        VkShaderModule shaderModule;
+        if (vkCreateShaderModule(m_LogicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create shader module: Unknown error");
+        }
+
+        return shaderModule;
     }
 
     // Returns 0 when the device is not supported
@@ -569,5 +623,34 @@ namespace Pulsar::Vulkan {
         }
 
         m_SwapChainImageViews.clear();
+    }
+
+    void Instance::InitGraphicsPipeline() {
+        VkShaderModule vertShaderModule = CreateShaderModule(ShaderType::Vertex, s_VertShader);
+        VkShaderModule fragShaderModule = CreateShaderModule(ShaderType::Fragment, s_FragShader);
+
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vertShaderStageInfo.module = vertShaderModule;
+        vertShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        vertShaderStageInfo.module = fragShaderModule;
+        vertShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+
+        vkDestroyShaderModule(m_LogicalDevice, fragShaderModule, nullptr);
+        vkDestroyShaderModule(m_LogicalDevice, vertShaderModule, nullptr);
+    }
+
+    void Instance::DeinitGraphicsPipeline() {
+        if (m_GraphicsPipeline != nullptr) {
+            vkDestroyPipeline(m_LogicalDevice, m_GraphicsPipeline, nullptr);
+            m_GraphicsPipeline = nullptr;
+        }
     }
 }
