@@ -1,5 +1,5 @@
-#ifndef PULSAR_VERSION_H
-#define PULSAR_VERSION_H
+#ifndef PULSAR_VERSION_HPP
+#define PULSAR_VERSION_HPP
 
 namespace Pulsar {
     struct Version {
@@ -9,4 +9,4 @@ namespace Pulsar {
     };
 }
 
-#endif //PULSAR_VERSION_H
+#endif //PULSAR_VERSION_HPP
