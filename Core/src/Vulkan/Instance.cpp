@@ -98,6 +98,7 @@ namespace Pulsar::Vulkan {
 
         instance.InitDebugMessenger();
         instance.SelectPhysicalDevice();
+        instance.InitLogicalDevice();
 
         return instance;
     }
@@ -108,6 +109,7 @@ namespace Pulsar::Vulkan {
 
     Instance::~Instance() {
         if (m_Instance != nullptr) {
+            DeinitLogicalDevice();
             DeinitDebugMessenger();
             vkDestroyInstance(m_Instance, nullptr);
         }
@@ -172,6 +174,47 @@ namespace Pulsar::Vulkan {
         }
 
         std::cout << "[PS] Selected physical device: " << GetDeviceName(m_PhysicalDevice) << '\n';
+    }
+
+    void Instance::InitLogicalDevice() {
+        QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
+
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+        queueCreateInfo.queueCount = 1;
+
+        float queuePriority = 1.0F;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        VkPhysicalDeviceFeatures deviceFeatures{};
+
+        VkDeviceCreateInfo deviceCreateInfo{};
+        deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceCreateInfo.queueCreateInfoCount = 1;
+        deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+        deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+
+        deviceCreateInfo.enabledExtensionCount = 0;
+
+        if (s_ValidationLayerEnabled) {
+            deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(s_ValidationLayers.size());
+            deviceCreateInfo.ppEnabledLayerNames = s_ValidationLayers.data();
+        } else {
+            deviceCreateInfo.enabledLayerCount = 0;
+        }
+
+        if (vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_LogicalDevice) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create logical device: Unknown error");
+        }
+
+        vkGetDeviceQueue(m_LogicalDevice, indices.graphicsFamily.value(), 0, &m_GraphicsQueue);
+
+        std::cout << "[PS] " << "Initialized logical device successfully\n";
+    }
+
+    void Instance::DeinitLogicalDevice() const {
+        vkDestroyDevice(m_LogicalDevice, nullptr);
     }
 
     VkBool32 Instance::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

@@ -44,6 +44,8 @@ namespace Pulsar::Vulkan {
         VkInstance m_Instance = nullptr;
         VkDebugUtilsMessengerEXT m_DebugMessenger = nullptr;
         VkPhysicalDevice m_PhysicalDevice = nullptr;
+        VkDevice m_LogicalDevice = nullptr;
+        VkQueue m_GraphicsQueue = nullptr;
         inline static std::optional<std::function<void(std::string)> > s_MessageCallback = std::nullopt;
 
         Instance() = default;
@@ -71,6 +73,10 @@ namespace Pulsar::Vulkan {
         void DeinitDebugMessenger() const;
 
         void SelectPhysicalDevice();
+
+        void InitLogicalDevice();
+
+        void DeinitLogicalDevice() const;
     };
 } //Pulsar::Vulkan
 
