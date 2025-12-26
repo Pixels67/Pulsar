@@ -26,6 +26,12 @@ namespace Pulsar::Vulkan {
         }
     };
 
+    struct SwapChainSupportInfo {
+        VkSurfaceCapabilitiesKHR capabilities{};
+        std::vector<VkSurfaceFormatKHR> formats{};
+        std::vector<VkPresentModeKHR> presentModes{};
+    };
+
     class Instance {
     public:
         static Instance Create(const ApplicationInfo &info = {});
@@ -52,6 +58,10 @@ namespace Pulsar::Vulkan {
         VkDevice m_LogicalDevice = nullptr;
         VkQueue m_GraphicsQueue = nullptr;
         VkQueue m_PresentQueue = nullptr;
+        VkSwapchainKHR m_SwapChain = nullptr;
+        std::vector<VkImage> m_SwapChainImages;
+        VkFormat m_SwapChainImageFormat;
+        VkExtent2D m_SwapChainExtent;
 
         Instance() = default;
 
@@ -61,15 +71,25 @@ namespace Pulsar::Vulkan {
             const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
             void *pUserData);
 
-        static std::string GetDeviceName(const VkPhysicalDevice &device);
+        static VkSurfaceFormatKHR SelectSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
-        static bool IsValidationLayerSupported();
+        static VkPresentModeKHR SelectSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
 
-        static void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
+        static VkExtent2D SelectSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 
         static std::vector<const char *> GetRequiredExtensions();
 
+        static std::string GetDeviceName(const VkPhysicalDevice &device);
+
+        static bool AreValidationLayersSupported();
+
+        static bool AreDeviceExtensionsSupported(const VkPhysicalDevice &device);
+
+        static void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
+
         QueueFamilyIndices FindQueueFamilies(const VkPhysicalDevice &device) const;
+
+        SwapChainSupportInfo QuerySwapChainSupport(const VkPhysicalDevice &device) const;
 
         uint16_t RateDevice(const VkPhysicalDevice &device) const;
 
@@ -86,6 +106,10 @@ namespace Pulsar::Vulkan {
         void InitSurface();
 
         void DeinitSurface();
+
+        void InitSwapChain();
+
+        void DeinitSwapChain();
     };
 } //Pulsar::Vulkan
 
