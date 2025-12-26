@@ -16,6 +16,7 @@ add_library(${PROJECT_NAME}
         src/Vulkan/Instance.cpp
         src/Vulkan/Instance.hpp
         src/Version.hpp
+        src/Vulkan/Extensions.hpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC include src)
