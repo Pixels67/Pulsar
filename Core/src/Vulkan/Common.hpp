@@ -8,8 +8,8 @@
 #include "Version.hpp"
 
 namespace Pulsar::Vulkan {
-    constexpr auto g_EngineName = "Pulsar";
-    constexpr Version g_EngineVersion = {0, 0, 1};
+    constexpr auto     g_EngineName    = "Pulsar";
+    constexpr Version  g_EngineVersion = {0, 0, 1};
     constexpr uint32_t g_VulkanVersion = VK_API_VERSION_1_0;
 
     constexpr std::array g_DeviceExtensions = {

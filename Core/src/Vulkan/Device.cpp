@@ -1,30 +1,27 @@
 #include "Device.hpp"
 
-#include <iostream>
-#include <set>
-
 #include "Common.hpp"
 
 namespace Pulsar::Vulkan {
     Device Device::Create(Instance &instance, Surface &surface) {
         Device device;
         device.m_Instance = &instance;
-        device.m_Surface = &surface;
+        device.m_Surface  = &surface;
 
         device.SelectPhysicalDevice();
 
         VkPhysicalDeviceFeatures deviceFeatures{};
 
         VkDeviceCreateInfo deviceCreateInfo{};
-        deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceCreateInfo.sType                = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         deviceCreateInfo.queueCreateInfoCount = 1;
-        deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+        deviceCreateInfo.pEnabledFeatures     = &deviceFeatures;
 
-        deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(g_DeviceExtensions.size());
+        deviceCreateInfo.enabledExtensionCount   = static_cast<uint32_t>(g_DeviceExtensions.size());
         deviceCreateInfo.ppEnabledExtensionNames = g_DeviceExtensions.data();
 
         if (g_ValidationLayerEnabled) {
-            deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(g_ValidationLayers.size());
+            deviceCreateInfo.enabledLayerCount   = static_cast<uint32_t>(g_ValidationLayers.size());
             deviceCreateInfo.ppEnabledLayerNames = g_ValidationLayers.data();
         } else {
             deviceCreateInfo.enabledLayerCount = 0;
@@ -32,21 +29,21 @@ namespace Pulsar::Vulkan {
 
         auto [graphicsFamily, presentFamily] = FindQueueFamilies(device.m_PhysicalDevice, *device.m_Surface);
 
-        std::set uniqueQueueFamilies = {graphicsFamily.value(), presentFamily.value()};
+        std::set                             uniqueQueueFamilies = {graphicsFamily.value(), presentFamily.value()};
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
         float queuePriority = 1.0F;
         for (uint32_t queueFamily : uniqueQueueFamilies) {
             VkDeviceQueueCreateInfo queueCreateInfo{};
-            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueCreateInfo.queueFamilyIndex = queueFamily;
-            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.queueCount       = 1;
             queueCreateInfo.pQueuePriorities = &queuePriority;
             queueCreateInfos.push_back(queueCreateInfo);
         }
 
         deviceCreateInfo.queueCreateInfoCount = queueCreateInfos.size();
-        deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+        deviceCreateInfo.pQueueCreateInfos    = queueCreateInfos.data();
 
         if (vkCreateDevice(device.m_PhysicalDevice, &deviceCreateInfo, nullptr, &device.m_LogicalDevice) !=
             VK_SUCCESS) {

@@ -9,16 +9,16 @@ namespace Pulsar::Vulkan {
         VkShaderModule fragShaderModule = pipeline.CreateShaderModule(ShaderType::Fragment, fragmentShader);
 
         VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vertShaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage  = VK_SHADER_STAGE_VERTEX_BIT;
         vertShaderStageInfo.module = vertShaderModule;
-        vertShaderStageInfo.pName = "main";
+        vertShaderStageInfo.pName  = "main";
 
         VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        vertShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        vertShaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
         vertShaderStageInfo.module = fragShaderModule;
-        vertShaderStageInfo.pName = "main";
+        vertShaderStageInfo.pName  = "main";
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
@@ -43,9 +43,9 @@ namespace Pulsar::Vulkan {
         const std::vector<uint32_t> spirv = CompileShader(type, source);
 
         VkShaderModuleCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = spirv.size();
-        createInfo.pCode = spirv.data();
+        createInfo.pCode    = spirv.data();
 
         VkShaderModule shaderModule;
         if (vkCreateShaderModule(m_Device->GetVkLogicalDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {

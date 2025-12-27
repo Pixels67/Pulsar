@@ -10,10 +10,10 @@
 
 namespace Pulsar::Glfw {
     struct WindowConfig {
-        std::string title = "Pulsar";
-        uint16_t width = 800;
-        uint16_t height = 600;
-        GraphicsApi api = GraphicsApi::Vulkan;
+        std::string title  = "Pulsar";
+        uint16_t    width  = 800;
+        uint16_t    height = 600;
+        GraphicsApi api    = GraphicsApi::Vulkan;
     };
 
     void PollEvents();
@@ -53,11 +53,11 @@ namespace Pulsar::Glfw {
         void SetTitle(const std::string &value) const;
 
     private:
-        inline static unsigned int s_WindowCount = 0;
-        inline static Window *s_CurrentWindow = nullptr;
+        inline static unsigned int s_WindowCount   = 0;
+        inline static Window *     s_CurrentWindow = nullptr;
 
-        GLFWwindow *m_GlfwWindowPtr = nullptr;
-        WindowConfig m_Config = {};
+        GLFWwindow * m_GlfwWindowPtr = nullptr;
+        WindowConfig m_Config        = {};
 
         Window() = default;
     };

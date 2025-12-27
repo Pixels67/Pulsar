@@ -1,10 +1,6 @@
 #ifndef PULSAR_SHADER_HPP
 #define PULSAR_SHADER_HPP
 
-#include <cstdint>
-#include <string>
-#include <vector>
-
 namespace Pulsar::Vulkan {
     enum class ShaderType : uint8_t {
         Vertex,

@@ -1,13 +1,5 @@
 #include "Instance.hpp"
 
-#include <array>
-#include <cstring>
-#include <functional>
-#include <iostream>
-#include <optional>
-#include <stdexcept>
-#include <vector>
-
 #include "Common.hpp"
 #include "Extensions.hpp"
 #include "Glfw/Window.hpp"
@@ -40,7 +32,7 @@ namespace Pulsar::Vulkan {
         appInfo.apiVersion = g_VulkanVersion;
 
         VkInstanceCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+        createInfo.sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
 
         if (glfwVulkanSupported() == GL_FALSE) {
@@ -53,7 +45,7 @@ namespace Pulsar::Vulkan {
                 throw std::runtime_error("Failed to create Vulkan instance: Validation layers not supported");
             }
 
-            createInfo.enabledLayerCount = g_ValidationLayers.size();
+            createInfo.enabledLayerCount   = g_ValidationLayers.size();
             createInfo.ppEnabledLayerNames = g_ValidationLayers.data();
 
             PopulateDebugMessengerCreateInfo(debugCreateInfo);
@@ -71,11 +63,11 @@ namespace Pulsar::Vulkan {
         createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
 
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+        createInfo.enabledExtensionCount   = static_cast<uint32_t>(requiredExtensions.size());
         createInfo.ppEnabledExtensionNames = requiredExtensions.data();
-        createInfo.enabledLayerCount = 0;
+        createInfo.enabledLayerCount       = 0;
 
-        Instance instance;
+        Instance       instance;
         const VkResult result = vkCreateInstance(&createInfo, nullptr, &instance.m_Instance);
 
         if (result != VK_SUCCESS) {
@@ -99,7 +91,7 @@ namespace Pulsar::Vulkan {
     }
 
     Instance::Instance(Instance &&other) noexcept {
-        m_Instance = other.m_Instance;
+        m_Instance       = other.m_Instance;
         other.m_Instance = nullptr;
     }
 
@@ -108,7 +100,7 @@ namespace Pulsar::Vulkan {
             vkDestroyInstance(m_Instance, nullptr);
         }
 
-        m_Instance = other.m_Instance;
+        m_Instance       = other.m_Instance;
         other.m_Instance = nullptr;
 
         return *this;
@@ -118,10 +110,10 @@ namespace Pulsar::Vulkan {
         return m_Instance;
     }
 
-    VkBool32 Instance::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                     VkDebugUtilsMessageTypeFlagsEXT messageType,
+    VkBool32 Instance::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
+                                     VkDebugUtilsMessageTypeFlagsEXT             messageType,
                                      const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                                     void *pUserData) {
+                                     void *                                      pUserData) {
         if (s_MessageCallback) {
             s_MessageCallback.value()(pCallbackData->pMessage);
         } else {
@@ -132,8 +124,8 @@ namespace Pulsar::Vulkan {
     }
 
     std::vector<const char *> Instance::GetRequiredExtensions() {
-        uint32_t glfwExtensionCount = 0;
-        const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+        uint32_t     glfwExtensionCount = 0;
+        const char **glfwExtensions     = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
         std::vector extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
@@ -170,7 +162,7 @@ namespace Pulsar::Vulkan {
     }
 
     void Instance::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
-        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        createInfo.sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
@@ -178,7 +170,7 @@ namespace Pulsar::Vulkan {
             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         createInfo.pfnUserCallback = debugCallback;
-        createInfo.pUserData = nullptr;
+        createInfo.pUserData       = nullptr;
     }
 
     void Instance::InitDebugMessenger() {

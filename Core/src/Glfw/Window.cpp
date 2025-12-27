@@ -64,7 +64,7 @@ namespace Pulsar::Glfw {
         Window window;
 
         window.m_GlfwWindowPtr = glfwWindowPtr;
-        window.m_Config = config;
+        window.m_Config        = config;
 
         return window;
     }

@@ -45,15 +45,13 @@ int main() {
     using namespace Pulsar;
     using namespace Pulsar::Vulkan;
 
-    Glfw::Window window = Glfw::Window::Create();
-    window.SetCurrent();
-
-    Instance instance = Instance::Create();
-    Surface surface = Surface::Create(instance, window);
-    Device device = Device::Create(instance, surface);
-    const SwapChain swapChain = SwapChain::Create(surface, device, window);
-    ImageViews imageViews = ImageViews::Create(device, swapChain);
-    Pipeline pipeline = Pipeline::Create(device, s_VertShader, s_FragShader);
+    Glfw::Window window     = Glfw::Window::Create();
+    Instance     instance   = Instance::Create();
+    Surface      surface    = Surface::Create(instance, window);
+    Device       device     = Device::Create(instance, surface);
+    SwapChain    swapChain  = SwapChain::Create(surface, device, window);
+    ImageViews   imageViews = ImageViews::Create(device, swapChain);
+    Pipeline     pipeline   = Pipeline::Create(device, s_VertShader, s_FragShader);
 
     while (!window.ShouldClose()) {
         Glfw::PollEvents();

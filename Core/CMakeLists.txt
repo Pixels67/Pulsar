@@ -48,8 +48,10 @@ add_library(${PROJECT_NAME}
         src/Vulkan/ImageViews.hpp
         src/Vulkan/Pipeline.cpp
         src/Vulkan/Pipeline.hpp
+        Pch.hpp
 )
 
+target_precompile_headers(${PROJECT_NAME} PUBLIC Pch.hpp)
 target_include_directories(${PROJECT_NAME} PUBLIC include src)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan shaderc glfw glad)

@@ -10,17 +10,17 @@ namespace Pulsar::Vulkan {
         static ImageViews Create(Device &device, const SwapChain &swapChain);
         ~ImageViews();
 
-        ImageViews(const ImageViews &other) = delete;
+        ImageViews(const ImageViews &other)     = delete;
         ImageViews(ImageViews &&other) noexcept = default;
 
-        ImageViews &operator=(const ImageViews &other) = delete;
+        ImageViews &operator=(const ImageViews &other)     = delete;
         ImageViews &operator=(ImageViews &&other) noexcept = default;
 
         [[nodiscard]] std::vector<VkImageView> GetVkImageViews() const;
 
     private:
         std::vector<VkImageView> m_SwapChainImageViews;
-        Device *m_Device = nullptr;
+        Device *                 m_Device = nullptr;
 
         ImageViews() = default;
     };

@@ -10,18 +10,18 @@ namespace Pulsar::Vulkan {
         static Surface Create(Instance &instance, const Glfw::Window &window);
         ~Surface();
 
-        Surface(const Surface &other) = delete;
+        Surface(const Surface &other)     = delete;
         Surface(Surface &&other) noexcept = default;
 
-        Surface &operator=(const Surface &other) = delete;
+        Surface &operator=(const Surface &other)     = delete;
         Surface &operator=(Surface &&other) noexcept = default;
 
         VkSurfaceKHR GetVkSurface() const;
 
     private:
-        VkSurfaceKHR m_Surface = nullptr;
-        Instance *m_Instance = nullptr;
-        Glfw::Window *m_Window = nullptr;
+        VkSurfaceKHR  m_Surface  = nullptr;
+        Instance *    m_Instance = nullptr;
+        Glfw::Window *m_Window   = nullptr;
 
         Surface() = default;
     };

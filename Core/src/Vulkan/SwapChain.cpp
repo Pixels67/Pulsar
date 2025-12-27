@@ -5,8 +5,8 @@ namespace Pulsar::Vulkan {
         auto [capabilities, formats, presentModes] = device.QuerySwapChainSupport();
 
         VkSurfaceFormatKHR surfaceFormat = SelectSwapSurfaceFormat(formats);
-        VkPresentModeKHR presentMode = SelectSwapPresentMode(presentModes);
-        VkExtent2D extent = SelectSwapExtent(capabilities, window);
+        VkPresentModeKHR   presentMode   = SelectSwapPresentMode(presentModes);
+        VkExtent2D         extent        = SelectSwapExtent(capabilities, window);
 
         uint32_t imageCount = capabilities.minImageCount + 1;
         if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) {
@@ -14,31 +14,31 @@ namespace Pulsar::Vulkan {
         }
 
         VkSwapchainCreateInfoKHR createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = surface.GetVkSurface();
-        createInfo.minImageCount = imageCount;
-        createInfo.imageFormat = surfaceFormat.format;
-        createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = extent;
+        createInfo.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        createInfo.surface          = surface.GetVkSurface();
+        createInfo.minImageCount    = imageCount;
+        createInfo.imageFormat      = surfaceFormat.format;
+        createInfo.imageColorSpace  = surfaceFormat.colorSpace;
+        createInfo.imageExtent      = extent;
         createInfo.imageArrayLayers = 1;
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        auto [graphicsFamily, presentFamily] = device.FindQueueFamilies();
-        const uint32_t queueFamilyIndices[] = {graphicsFamily.value(), presentFamily.value()};
+        auto           [graphicsFamily, presentFamily] = device.FindQueueFamilies();
+        const uint32_t queueFamilyIndices[]            = {graphicsFamily.value(), presentFamily.value()};
 
         if (graphicsFamily != presentFamily) {
-            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            createInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
             createInfo.queueFamilyIndexCount = 2;
-            createInfo.pQueueFamilyIndices = queueFamilyIndices;
+            createInfo.pQueueFamilyIndices   = queueFamilyIndices;
         } else {
             createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         }
 
-        createInfo.preTransform = capabilities.currentTransform;
+        createInfo.preTransform   = capabilities.currentTransform;
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        createInfo.presentMode = presentMode;
-        createInfo.clipped = VK_TRUE;
-        createInfo.oldSwapchain = nullptr;
+        createInfo.presentMode    = presentMode;
+        createInfo.clipped        = VK_TRUE;
+        createInfo.oldSwapchain   = nullptr;
 
         SwapChain swapChain{};
         swapChain.m_Device = &device;
@@ -54,7 +54,7 @@ namespace Pulsar::Vulkan {
                                 swapChain.m_Images.data());
 
         swapChain.m_SwapChainExtent = extent;
-        swapChain.m_ImageFormat = surfaceFormat.format;
+        swapChain.m_ImageFormat     = surfaceFormat.format;
 
         return swapChain;
     }
