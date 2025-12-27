@@ -37,6 +37,17 @@ add_library(${PROJECT_NAME}
         src/Vulkan/Shader.cpp
         src/FileIo/File.hpp
         src/FileIo/File.cpp
+        src/Vulkan/Surface.cpp
+        src/Vulkan/Surface.hpp
+        src/Vulkan/Device.cpp
+        src/Vulkan/Device.hpp
+        src/Vulkan/Common.hpp
+        src/Vulkan/SwapChain.cpp
+        src/Vulkan/SwapChain.hpp
+        src/Vulkan/ImageViews.cpp
+        src/Vulkan/ImageViews.hpp
+        src/Vulkan/Pipeline.cpp
+        src/Vulkan/Pipeline.hpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC include src)
